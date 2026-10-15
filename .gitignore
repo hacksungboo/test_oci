@@ -1,0 +1,26 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# 키/자격증명
+*.pem
+*.key
+.oci/
+kubeconfig*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

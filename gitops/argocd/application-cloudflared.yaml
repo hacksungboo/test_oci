@@ -1,0 +1,27 @@
+# cloudflared-token Secret 은 Terraform(02-bootstrap)이 만든다. 여기서는 Deployment + ConfigMap 만 관리.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: cloudflared
+  namespace: argocd
+
+spec:
+  project: telos-platform
+
+  source:
+    repoURL: https://github.com/hacksungboo/test_oci.git
+    targetRevision: main
+    path: gitops/platform/cloudflared
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true

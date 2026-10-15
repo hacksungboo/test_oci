@@ -1,0 +1,66 @@
+# MoongCheap applicationset-platform.yaml 과 동일.
+# gitops/platform/**/config.yaml 을 자동 탐색해서 Helm chart Application 을 만든다.
+# 새 플랫폼 추가 = gitops/platform/<name>/{config.yaml, values.yaml} 커밋 (이 파일은 수정 불필요)
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+
+metadata:
+  name: telos-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
+  generators:
+    - git:
+        repoURL: https://github.com/hacksungboo/test_oci.git
+        revision: main
+        files:
+          - path: gitops/platform/**/config.yaml
+          # 아직 쓰지 않는 플랫폼(ESO, tailscale 등)은 _optional 아래에 둔다
+          - path: gitops/platform/_optional/**
+            exclude: true
+
+  template:
+    metadata:
+      name: "{{ .name }}"
+
+    spec:
+      project: telos-platform
+
+      sources:
+        - repoURL: "{{ .helm.repoURL }}"
+          chart: "{{ .helm.chart }}"
+          targetRevision: "{{ .helm.version }}"
+          helm:
+            releaseName: "{{ .name }}"
+            valueFiles:
+              - "$values/{{ .path.path }}/values.yaml"
+
+        - repoURL: https://github.com/hacksungboo/test_oci.git
+          targetRevision: main
+          ref: values
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+
+        retry:
+          limit: 10
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 3m

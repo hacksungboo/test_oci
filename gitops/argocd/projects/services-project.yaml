@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+
+metadata:
+  name: telos-services
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+
+spec:
+  description: Telos application services
+
+  sourceRepos:
+    - https://github.com/hacksungboo/test_oci.git
+
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "telos-*"
+
+  # 서비스 Application 이 telos-dev / telos-prod 네임스페이스를 직접 만든다 (CreateNamespace=true)
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

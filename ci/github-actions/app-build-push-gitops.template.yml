@@ -1,0 +1,97 @@
+# 앱 저장소의 .github/workflows/ 에 복사해서 사용. TODO 표시만 서비스에 맞게 바꾼다.
+name: build-push-gitops
+
+on:
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PROJECT: telos
+  GITOPS_REPO: hacksungboo/test_oci
+
+jobs:
+  # 1) 변경된 서비스만 고르기 (Jit-Hub ci-build-push.yml 과 동일)
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+      any: ${{ steps.set.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |            # TODO: 서비스 경로
+            web:
+              - 'web/**'
+            api:
+              - 'api/**'
+      - id: set
+        run: |
+          items=()
+          [ "${{ steps.changes.outputs.web }}" = "true" ] && items+=('{"svc":"web","context":"web"}')
+          [ "${{ steps.changes.outputs.api }}" = "true" ] && items+=('{"svc":"api","context":"api"}')
+          if [ ${#items[@]} -eq 0 ]; then
+            echo "any=false" >> "$GITHUB_OUTPUT"; echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+            printf 'matrix={"include":[%s]}\n' "$(IFS=,; echo "${items[*]}")" >> "$GITHUB_OUTPUT"
+          fi
+
+  # 2) 빌드 -> OCIR push -> gitops PR
+  build:
+    needs: detect
+    if: needs.detect.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set env / tag
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then ENVIRONMENT=prod; else ENVIRONMENT=dev; fi
+          echo "ENVIRONMENT=${ENVIRONMENT}" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=${ENVIRONMENT}-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "IMAGE=${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/${PROJECT}/${{ matrix.svc }}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v3      # ARM 노드(A1)용 멀티아키 빌드
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.OCIR_REGISTRY }}
+          username: ${{ secrets.OCIR_USERNAME }}
+          password: ${{ secrets.OCIR_AUTH_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.IMAGE_TAG }}
+
+      - name: Update gitops image tag (PR)
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        run: |
+          set -e
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITOPS_REPO}.git" gitops
+          cd gitops
+          BRANCH="ci/update-${{ matrix.svc }}-${IMAGE_TAG}-${GITHUB_RUN_NUMBER}"
+          git checkout -b "$BRANCH"
+          FILE="gitops/values/overrides/${ENVIRONMENT}/${{ matrix.svc }}.yaml"
+          yq -i ".image.tag = \"${IMAGE_TAG}\"" "$FILE"
+          git config user.name  "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git commit -am "ci(gitops): update ${{ matrix.svc }} image tag to ${IMAGE_TAG}"
+          git push origin "$BRANCH"
+          gh pr create --repo "$GITOPS_REPO" --base main --head "$BRANCH" \
+            --title "ci(gitops): ${{ matrix.svc }} ${IMAGE_TAG}" --body "Image: ${IMAGE}:${IMAGE_TAG}"

@@ -1,0 +1,12 @@
+# envoyproxy/gateway-helm 컨트롤플레인 설정.
+# 데이터플레인(Envoy 자체) 설정은 resources/envoyproxy.yaml(EnvoyProxy CR)에서 관리한다.
+# Envoy 는 단순 프록시 역할만 한다: Cloudflare 가 TLS 를 끝내고 cloudflared 가 넘긴 HTTP 를 Service 로 라우팅.
+deployment:
+  replicas: 1
+  envoyGateway:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi

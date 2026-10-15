@@ -1,0 +1,66 @@
+# argo/argo-cd chart values.
+# ⚠️ ArgoCD 는 자기 자신을 GitOps 로 관리하지 않는다 (MoongCheap 과 동일).
+#    이 파일은 Terraform(terraform/envs/dev/02-bootstrap)이 helm_release 로 읽어서 적용한다.
+#    변경 반영: cd terraform/envs/dev/02-bootstrap && terraform apply
+#    (이 디렉터리에는 config.yaml 이 없으므로 applicationset-platform 이 집어가지 않는다)
+
+global:
+  # domain 은 Terraform 이 argocd_hostname 변수로 덮어쓴다
+  domain: argocd.ccmall.shop
+
+configs:
+  params:
+    # TLS 는 Cloudflare Edge 에서 종료하고, cloudflared -> Envoy -> argocd-server 구간은 HTTP
+    server.insecure: true
+
+  cm:
+    # ApplicationSet/Application 상태 표시용. 웹훅을 붙이면 polling 주기와 무관하게 즉시 동기화된다.
+    timeout.reconciliation: 120s
+
+controller:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+server:
+  service:
+    type: ClusterIP   # 외부 노출은 Envoy Gateway HTTPRoute(argocd.ccmall.shop) 로만
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+applicationSet:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false   # MoongCheap 의 Discord 알림이 필요하면 true 로 바꾸고 notifiers/templates/triggers 를 옮겨온다

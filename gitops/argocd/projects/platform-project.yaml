@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+
+metadata:
+  name: telos-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"   # Application 보다 먼저 생성
+
+spec:
+  description: Telos platform components (envoy-gateway, cloudflared, ...)
+
+  sourceRepos:
+    - https://github.com/hacksungboo/test_oci.git
+    - docker.io/envoyproxy                # envoy-gateway chart (OCI Helm, 02-bootstrap 이 repository Secret 등록)
+    # 플랫폼을 추가할 때 chart 저장소를 여기에 추가
+    # - https://prometheus-community.github.io/helm-charts
+    # - https://grafana.github.io/helm-charts
+    # - https://charts.external-secrets.io
+    # - https://kedacore.github.io/charts
+
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: infra
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+    - server: https://kubernetes.default.svc
+      namespace: "telos-*"                # 서비스별 HTTPRoute 가 서비스 네임스페이스에 배치됨
+
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

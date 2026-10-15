@@ -1,0 +1,15 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "telos-service.fullname" . }}
+  labels:
+    {{- include "telos-service.labels" . | nindent 4 }}
+
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+
+  selector:
+    matchLabels:
+      {{- include "telos-service.selectorLabels" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,17 @@
+{{- /*
+  values.files 에 적은 파일들을 ConfigMap 으로 만들어 filesMountPath 에 마운트한다.
+  이미지 빌드 없이 정적 페이지(nginx index.html)나 설정 파일을 올릴 때 사용.
+*/ -}}
+{{- if and (eq .Values.workload.kind "Deployment") .Values.files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "telos-service.fullname" . }}-files
+  labels:
+    {{- include "telos-service.labels" . | nindent 4 }}
+data:
+  {{- range $name, $content := .Values.files }}
+  {{ $name }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+{{- end }}

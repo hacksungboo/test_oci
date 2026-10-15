@@ -1,0 +1,19 @@
+# cp terraform.tfvars.example terraform.tfvars
+
+# 차트 버전은 apply 전에 확인 후 고정
+#   helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+#   helm search repo argo/argo-cd ; helm search repo argo/argocd-apps
+argocd_chart_version      = "10.10.5"
+argocd_apps_chart_version = "2.0.6"
+
+argocd_hostname = "argocd.ccmall.shop"
+
+gitops_repo_url = "https://github.com/hacksungboo/test_oci.git"
+gitops_revision = "main"
+
+# 저장소를 private 으로 바꾸면 PAT 입력
+gitops_repo_token = ""
+
+# OCIR 를 private 으로 쓸 때만 (nginx 테스트에는 불필요)
+# ocir_username   = "<tenancy-namespace>/<oci-user>"
+# ocir_auth_token = ""

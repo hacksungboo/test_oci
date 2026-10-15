@@ -1,0 +1,58 @@
+# cloudflared-token Secret 은 git 에 커밋하지 않는다.
+# Terraform(02-bootstrap)이 infra/cloudflared-token Secret 을 만든다 (ESO 로 바꾸려면 _optional/external-secrets 참고).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: infra
+  labels:
+    app: cloudflared
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.9.1
+          args:
+            - tunnel
+            - --metrics
+            - 0.0.0.0:2000
+            - --config
+            - /etc/cloudflared/config.yml
+            - --no-autoupdate
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-token
+                  key: token
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          # config 변경 시 재시작이 필요하면: kubectl -n infra rollout restart deploy/cloudflared
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config

@@ -1,0 +1,27 @@
+# argocd.ccmall.shop -> argocd-server (Helm releaseName=argocd -> Service argocd-server)
+# server.insecure: true (gitops/platform/argocd/values.yaml) 와 짝.
+# ⚠️ ArgoCD UI 가 인터넷에 노출된다. Cloudflare Zero Trust > Access 로 이메일 인증을 거는 것을 권장 (대시보드 설정, 코드 관리 대상 아님).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  hostnames:
+    - "argocd.ccmall.shop"
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: telos-gateway
+      namespace: infra
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: argocd-server
+          port: 80
+          weight: 1

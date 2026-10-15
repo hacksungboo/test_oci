@@ -1,0 +1,39 @@
+# envoy-gateway chart(CRD 포함)가 먼저 설치되어야 이 리소스들이 적용된다.
+# CRD 가 아직 없을 때 dry-run 에서 막히지 않도록 SkipDryRunOnMissingResource + retry 를 둔다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: gateway-resources
+  namespace: argocd
+
+spec:
+  project: telos-platform
+
+  source:
+    repoURL: https://github.com/hacksungboo/test_oci.git
+    targetRevision: main
+    path: gitops/platform/envoy-gateway/resources
+
+  # 이 디렉터리의 리소스는 각자 metadata.namespace 를 명시한다 (infra / argocd / telos-dev).
+  # destination.namespace 는 기본값일 뿐 (MoongCheap 과 동일).
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true
+
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 3m

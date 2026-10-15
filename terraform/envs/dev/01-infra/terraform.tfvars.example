@@ -1,0 +1,53 @@
+# cp terraform.tfvars.example terraform.tfvars  (terraform.tfvars 는 .gitignore 처리됨)
+
+# ─── OCI (~/.oci/config 와 같은 값) ─────────────────────────────────────────
+oci_profile      = "DEFAULT"
+region           = "ap-seoul-1"     # 춘천이면 ap-chuncheon-1
+region_key       = "icn"            # 춘천이면 yny
+tenancy_ocid     = "ocid1.tenancy.oc1..xxxx"
+compartment_ocid = "ocid1.tenancy.oc1..xxxx"   # 개인 계정 = tenancy OCID. 대회 환경 = 받은 컴파트먼트 OCID
+
+# mgmt 서버 공인 IP 로 좁히기:  curl -s ifconfig.me
+api_allowed_cidrs = ["0.0.0.0/0"]
+
+# 온프레미스 k8s(kubeadm 기본 pod 10.244.0.0/16, svc 10.96.0.0/12)와 Tailscale 로 연결할 가능성이 있으면
+# 아래 대역을 온프레미스와 겹치지 않게 바꾼다. 클러스터 생성 후에는 바꿀 수 없다.
+#   확인(온프레미스 master): kubectl cluster-info dump | grep -m1 -E "cluster-cidr|service-cluster-ip-range"
+vcn_cidr      = "10.0.0.0/16"
+pods_cidr     = "10.244.0.0/16"
+services_cidr = "10.96.0.0/16"
+
+# null 이면 최신. 고정하려면: oci ce cluster-options get --cluster-option-id all --query 'data."kubernetes-versions"'
+kubernetes_version = null
+cluster_type       = "BASIC_CLUSTER"
+
+# 노드 풀 (Jit-Hub node_groups 와 같은 형식)
+# - x86: VM.Standard.E5.Flex / VM.Standard.E4.Flex  (1 OCPU = 2 vCPU)
+# - ARM: VM.Standard.A1.Flex  (Free Tier 합계 4 OCPU / 24GB 무료, 대신 "Out of host capacity" 가 잦고 이미지도 arm64 필요)
+node_pools = {
+  general = {
+    shape         = "VM.Standard.E5.Flex"
+    ocpus         = 1
+    memory_in_gbs = 8
+    size          = 2
+    labels = {
+      workload = "general"
+    }
+  }
+}
+
+# ssh_public_key = "ssh-ed25519 AAAA..."
+
+# 주제 확정 후 추가. 예: ["web", "api"]
+ocir_repositories = []
+
+# ─── Cloudflare ─────────────────────────────────────────────────────────────
+cloudflare_api_token  = ""
+cloudflare_account_id = ""
+cloudflare_zone_id    = ""   # ccmall.shop
+
+# "@" = ccmall.shop, "argocd" = argocd.ccmall.shop
+cloudflare_subdomains = ["@", "argocd"]
+
+# ccmall.shop apex 에 기존 레코드(가비아 파킹 A 레코드 등)가 있으면 true 또는 대시보드에서 삭제
+cloudflare_allow_overwrite = false

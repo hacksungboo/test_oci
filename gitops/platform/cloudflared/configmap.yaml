@@ -1,0 +1,16 @@
+# Terraform 의 Tunnel 이 config_src = "local" 이라서 호스트 -> 서비스 라우팅 표는 이 ConfigMap 이 갖는다.
+# 모든 호스트를 Envoy 로 보내고, 실제 서비스 분기는 HTTPRoute(hostnames) 가 한다.
+# 호스트 추가 시: terraform cloudflare_subdomains + 여기 + HTTPRoute 세 곳을 같이 바꾼다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: infra
+data:
+  config.yml: |
+    ingress:
+      - hostname: ccmall.shop
+        service: http://telos-envoy.infra.svc.cluster.local:80
+      - hostname: argocd.ccmall.shop
+        service: http://telos-envoy.infra.svc.cluster.local:80
+      - service: http_status:404

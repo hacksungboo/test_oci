@@ -1,0 +1,63 @@
+# 테스트용 정적 페이지. 주제 확정 후 실제 프론트엔드 이미지(OCIR)로 교체한다.
+#   image.repository: <region-key>.ocir.io/<namespace>/telos/web   (terraform output ocir_repository_urls)
+#   files: {} 로 비우고 containerPort 를 앱 포트로 변경
+nameOverride: web
+
+image:
+  repository: "nginx"
+
+containerPort: 80
+
+service:
+  port: 80
+
+livenessProbe:
+  enabled: true
+  path: /
+  initialDelaySeconds: 5
+
+readinessProbe:
+  enabled: true
+  path: /
+  initialDelaySeconds: 2
+
+filesMountPath: /usr/share/nginx/html
+
+files:
+  index.html: |
+    <!doctype html>
+    <html lang="ko">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>ccmall.shop</title>
+      <style>
+        :root { color-scheme: light dark; --fg:#1d1d1f; --muted:#6e6e73; --bg:#fafaf7; --line:#e3e1da; --accent:#c74634; }
+        @media (prefers-color-scheme: dark) { :root { --fg:#f2f2f0; --muted:#a1a1a6; --bg:#161615; --line:#2e2d2a; } }
+        * { box-sizing: border-box; }
+        body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+               font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif; padding:24px; }
+        main { max-width:560px; width:100%; }
+        .tag { display:inline-block; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent);
+               border:1px solid var(--accent); border-radius:999px; padding:4px 10px; }
+        h1 { font-size:40px; margin:16px 0 8px; letter-spacing:-.02em; }
+        p { color:var(--muted); line-height:1.6; margin:0 0 24px; }
+        ol { list-style:none; padding:0; margin:0; border-top:1px solid var(--line); }
+        li { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px; }
+        li span:last-child { color:var(--muted); text-align:right; }
+      </style>
+    </head>
+    <body>
+      <main>
+        <span class="tag">dev · OCI OKE</span>
+        <h1>ccmall.shop</h1>
+        <p>Oracle Cloud OKE 위에서 ArgoCD 가 배포한 테스트 페이지입니다. 이 페이지가 보이면 아래 경로가 모두 정상입니다.</p>
+        <ol>
+          <li><span>1. Cloudflare Edge</span><span>HTTPS 종료, DNS CNAME</span></li>
+          <li><span>2. cloudflared</span><span>infra 네임스페이스, 아웃바운드 터널</span></li>
+          <li><span>3. Envoy Gateway</span><span>Gateway + HTTPRoute 프록시</span></li>
+          <li><span>4. nginx</span><span>telos-service Helm chart</span></li>
+        </ol>
+      </main>
+    </body>
+    </html>

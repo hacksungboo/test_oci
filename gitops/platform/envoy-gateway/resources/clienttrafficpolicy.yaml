@@ -1,0 +1,16 @@
+# 앞단 프록시(cloudflared) 1홉을 신뢰해 X-Forwarded-For / X-Forwarded-Proto 를 보존한다 (MoongCheap D-80).
+# 없으면 Envoy 가 XFP 를 http 로 덮어써서 앱이 redirect URL 을 http:// 로 만든다.
+# 경로: Cloudflare Edge(HTTPS) -> cloudflared -> Envoy :80 -> Service
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: telos-client
+  namespace: infra
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: telos-gateway
+  clientIPDetection:
+    xForwardedFor:
+      numTrustedHops: 1

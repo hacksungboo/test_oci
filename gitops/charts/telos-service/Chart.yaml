@@ -1,0 +1,11 @@
+apiVersion: v2
+
+name: telos-service
+
+description: Helm chart for Telos application services (MoongCheap moongcheap-service 기반)
+
+type: application
+
+version: 0.1.0
+
+appVersion: "1.0.0"

@@ -1,0 +1,57 @@
+# MoongCheap applicationset-services-develop.yaml 과 동일한 Values Layering.
+#   base -> env/dev -> services/<service> -> overrides/dev/<service>
+# 서비스 추가 = elements 에 한 줄 + values/services/<service>.yaml + values/overrides/dev/<service>.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+
+metadata:
+  name: telos-services-dev
+  namespace: argocd
+
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+
+  generators:
+    - list:
+        elements:
+          - service: web
+          # 주제 확정 후 추가
+          # - service: api
+          # - service: ai
+
+  template:
+    metadata:
+      name: "{{ .service }}-dev"
+
+    spec:
+      project: telos-services
+
+      sources:
+        - repoURL: https://github.com/hacksungboo/test_oci.git
+          targetRevision: main
+          path: gitops/charts/telos-service
+          helm:
+            releaseName: "{{ .service }}"
+            valueFiles:
+              - $values/gitops/values/base.yaml
+              - $values/gitops/values/env/dev.yaml
+              - $values/gitops/values/services/{{ .service }}.yaml
+              - $values/gitops/values/overrides/dev/{{ .service }}.yaml
+
+        - repoURL: https://github.com/hacksungboo/test_oci.git
+          targetRevision: main
+          ref: values
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: telos-dev
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+
+        syncOptions:
+          - CreateNamespace=true
